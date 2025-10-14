@@ -42,8 +42,8 @@ const GREP_CMD = "grep"
 const PALADIN_SCRIPT = "/home/grim/Desktop/Projects/Paladin/Paladin_v2.py"
 const VENV_ACTIVATE = "source /home/grim/venv/bin/activate"
 const PALADIN_MODEL = "ollama run Paladin"
-const SECURITY_MONITOR_SCRIPT = "/home/grim/.julia/config/security_monitor"
-const SECURITY_TOOLKIT_SCRIPT = "/home/grim/.julia/config/security_toolkit"
+const SECURITY_MONITOR_SCRIPT = "/home/grim/.julia/config/security_monitor.sh"
+const SECURITY_TOOLKIT_SCRIPT = "/home/grim/.julia/config/security_toolkit.sh"
 const SECURITY_AGENT_SCRIPT = "/home/grim/.julia/config/security_agent.sh"
 
 # --- 4. Movement Functions (Leveraging Bash.bash) ---
@@ -566,94 +566,90 @@ security_agent(command::String="help", args::String="")
 Launches the unified security agent script with a command (e.g., 'monitor', 'full', 'network').
 Uses Bash.bash_prompt for 'monitor' mode, and Bash.bash for audit/exit modes.
     """
-    function security_agent(command::String="help", args::String="")
-        full_cmd = "$SECURITY_AGENT_SCRIPT $command $args"
+function security_agent(command::String="help", args::String="")
+    full_cmd = "$SECURITY_AGENT_SCRIPT $command $args"
 
-        if command == "monitor"
-            println("Launching INTERACTIVE security monitor. Press Ctrl+C to exit and return to REPL.")
-            # Use bash_prompt for the long-running, interactive monitor
-            Bash.bash_prompt(full_cmd)
+    if command == "monitor"
+        println("Launching INTERACTIVE security monitor. Press Ctrl+C to exit and return to REPL.")
+        # Use bash_prompt for the long-running, interactive monitor
+        Bash.bash_prompt(full_cmd)
 
-            # After monitor exits (via Ctrl+C in the Bash script):
-            println("\nSecurity Monitor Session Ended.")
-        else
-            println("Running security agent audit: $command...")
-            # Use bash for non-interactive commands that exit immediately
-            Bash.bash(full_cmd)
-        end
-
-        # Check for exceptions/fails and provide feedback
-        # NOTE: The check for command exit code happens implicitly inside Bash.bash
-        #       and Bash.bash_prompt; non-zero codes will often throw an error in Julia.
-        #       This print gives user feedback regardless of success.
-        println("Security Agent command finished.")
-        return
+        # After monitor exits (via Ctrl+C in the Bash script):
+        println("\nSecurity Monitor Session Ended.")
+    else
+        println("Running security agent audit: $command...")
+        # Use bash for non-interactive commands that exit immediately
+        Bash.bash(full_cmd)
     end
 
-    """
-    tool_menu()
+    # Check for exceptions/fails and provide feedback
+    # NOTE: The check for command exit code happens implicitly inside Bash.bash
+    #       and Bash.bash_prompt; non-zero codes will often throw an error in Julia.
+    #       This print gives user feedback regardless of success.
+    println("Security Agent command finished.")
+    return
+end
 
-    Presents an interactive menu of all integrated tools and handles tool exit exceptions.
-    """
-    function tool_menu()
-        options = [
-            # ... (Your options list is unchanged)
-            "Ollama: llama3.2:latest"       => :(@llama3),
-            "Ollama: codellama:7b-instruct" => :(@Ocode),
-            "Ollama: smollm2:latest"        => :(@smollm2),
-            "Ollama: Paladin (Model Only)"  => :(@Paladin_model),
-            "Launch Paladin Script (with venv)" => :(paladin_launch()),
+"""
+tool_menu()
 
-            "SECURITY: Launch Live Monitor (Interactive)" => :(security_agent("monitor")),
-            "SECURITY: Run Full System Audit (Exit/Fail Handled)" => :(security_agent("full")),
-            "SECURITY: Run Network Audit Only" => :(security_agent("network")),
-            "SECURITY: Cleanup Old Reports" => :(security_agent("cleanup")),
+Presents an interactive menu of all integrated tools and handles tool exit exceptions.
+"""
+function tool_menu()
+    options = [
+        # ... (Your options list is unchanged)
+        "Ollama: llama3.2:latest" => :(@llama3),
+        "Ollama: codellama:7b-instruct" => :(@Ocode),
+        "Ollama: smollm2:latest" => :(@smollm2),
+        "Ollama: Paladin (Model Only)" => :(@Paladin_model),
+        "Launch Paladin Script (with venv)" => :(paladin_launch()), "SECURITY: Launch Live Monitor (Interactive)" => :(security_agent("monitor")),
+        "SECURITY: Run Full System Audit (Exit/Fail Handled)" => :(security_agent("full")),
+        "SECURITY: Run Network Audit Only" => :(security_agent("network")),
+        "SECURITY: Cleanup Old Reports" => :(security_agent("cleanup")), "Exit Menu" => nothing
+    ]
 
-            "Exit Menu"                       => nothing
-            ]
+    menu = RadioMenu([m[1] for m in options], pagesize=10)
+    choice = request("Select a Tool or Model to Run:", menu)
 
-        menu = RadioMenu([m[1] for m in options], pagesize=10)
-            choice = request("Select a Tool or Model to Run:", menu)
+    if 1 <= choice <= length(options) - 1
+        chosen_option = options[choice]
 
-            if 1 <= choice <= length(options) - 1
-                chosen_option = options[choice]
+        println("Executing: $(chosen_option[1])...")
 
-                println("Executing: $(chosen_option[1])...")
+        # **Exception Handling for External Tool Exit/Failure**
+        try
+            eval(chosen_option[2])
+        catch e
+            if e isa InterruptException
+                # This catches Ctrl+C if it interrupts Julia code (less likely here)
+                println(stderr, "\n[ERROR] Julia execution interrupted by user.")
+            elseif e isa ProcessFailedException
+                # This catches non-zero exits from external commands (like your security agent)
+                proc = e.procs[1] # Get the first (and usually only) process that failed
+                cmd = String(proc.cmd)
+                code = proc.exitcode
 
-                # **Exception Handling for External Tool Exit/Failure**
-                try
-                    eval(chosen_option[2])
-                    catch e
-                    if e isa InterruptException
-                        # This catches Ctrl+C if it interrupts Julia code (less likely here)
-                        println(stderr, "\n[ERROR] Julia execution interrupted by user.")
-                        elseif e isa ProcessFailedException
-                        # This catches non-zero exits from external commands (like your security agent)
-                        proc = e.procs[1] # Get the first (and usually only) process that failed
-                        cmd = String(proc.cmd)
-                        code = proc.exitcode
+                println(stderr, "\n[WARNING] Tool execution failed or exited with error code.")
+                println(stderr, "   Command: $cmd")
+                println(stderr, "   Exit Code: $code")
 
-                        println(stderr, "\n[WARNING] Tool execution failed or exited with error code.")
-                        println(stderr, "   Command: $cmd")
-                        println(stderr, "   Exit Code: $code")
-
-                        if code == 126
-                            println(stderr, "   SUGGESTION: Code 126 means 'Permission Denied'. Did you run 'chmod +x' on the script?")
-                        end
-                    else
-                        # Catch all other Julia-related errors (e.g., UndefVarError)
-                        println(stderr, "\n[ERROR] An unexpected Julia error occurred: $(typeof(e)): $e")
-                    end
-                finally
-                    println("\n--- REPL Control Restored ---")
+                if code == 126
+                    println(stderr, "   SUGGESTION: Code 126 means 'Permission Denied'. Did you run 'chmod +x' on the script?")
                 end
-
-                elseif choice == length(options)
-                println("Menu exited gracefully.")
             else
-                println("Selection cancelled.")
+                # Catch all other Julia-related errors (e.g., UndefVarError)
+                println(stderr, "\n[ERROR] An unexpected Julia error occurred: $(typeof(e)): $e")
             end
+        finally
+            println("\n--- REPL Control Restored ---")
         end
+
+    elseif choice == length(options)
+        println("Menu exited gracefully.")
+    else
+        println("Selection cancelled.")
+    end
+end
 
 # --- 12. Exports ---
 # Makes all custom functions and macros available in the global REPL scope without prefixing (e.g., just 'ls()' instead of 'Main.ls()')
