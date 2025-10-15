@@ -6,8 +6,8 @@
 # NOTE: Ensure Julia is launched with `--threads` flag set externally (e.g., in .bashrc)
 # examples given in bashrc file paste into your .bashrc and change the thread equation
 
-include("Basher.jl")                      # Custom Bash integration framework
-using .Bash                               # Access functions/macros from Bash.jl
+include("JBash.jl")                      # Custom Bash integration framework
+using .JBash                               # Access functions/macros from Bash.jl
 using Revise                              # Automatic code reloading
 using REPL                                # For REPL customization (e.g., numbered prompt)
 using LinearAlgebra                       # Essential for math operations (e.g., BLAS threads in env_info)
@@ -36,7 +36,7 @@ const EDITOR = get(ENV, "EDITOR", "nano")
 # Simple wrappers for common Bash directory changes. change or replicate for other locations
 function home()
     cmd = "cd ~"
-    basher.bash(cmd)
+    JBash.bash(cmd)
 end
 
 # Standard macro for quickly checking methods of a function

@@ -1,11 +1,11 @@
 #!/usr/bin/env julia
 
 """
-Basher: Julia–Bash Integration Framework
+JBash: Julia–Bash Integration Framework
 Core functions and symbol table for unified LSP
 """
 
-module Basher
+module JBash
 
 using Distributed
 using Dates

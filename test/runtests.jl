@@ -1,7 +1,7 @@
 using Test
-using Basher
+using JBash
 
-@testset "Basher.jl Tests" begin
+@testset "JBash.jl Tests" begin
 
     @testset "Macro Tests" begin
         # Test @bashwrap

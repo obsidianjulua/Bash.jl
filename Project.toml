@@ -1,4 +1,4 @@
-name = "Basher"
+name = "JBash"
 uuid = "05aca6c6-4af4-4687-bf5f-b81b4e60d6a9"
 version = "0.1.0"
 authors = ["grim <archjulialua@gmail.com>"]
@@ -9,3 +9,5 @@ Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [compat]
 Distributed = "1.11.0"
+Dates = "1.11"
+julia = "1.12"
