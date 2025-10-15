@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 
 """
-BashMacros: Julia–Bash Integration Framework
+BashMacros: Julia Bash Integration Framework
 Core functions and symbol table for unified LSP
 """
 
@@ -389,7 +389,7 @@ end
 
 mutable struct ArgumentPattern
     command::String
-    patterns::Dict{Int,Int}
+    patterns::Dict{Int,Int} 
     last_used::Float64
     confidence::Float64
 end

@@ -43,7 +43,7 @@ const PALADIN_SCRIPT = "/home/grim/Desktop/Projects/Paladin/Paladin_v2.py"
 const VENV_ACTIVATE = "source /home/grim/venv/bin/activate"
 const PALADIN_MODEL = "ollama run Paladin"
 
-# --- 4. Movement Functions (Leveraging Bash.bash) ---
+# --- 4. Movement Functions (Leveraging BashMacros.bash) ---
 # Simple wrappers for common Bash directory changes.
 home() = BashMacros.bash("cd ~")
 Projects() = BashMacros.bash("cd /home/grim/Desktop/Projects")
@@ -462,13 +462,13 @@ venv()
 Activates the Python virtual environment defined by VENV_ACTIVATE.
 NOTE: This typically requires running Julia within a shell that is *already*
 in the virtual environment, or using a sub-shell that is kept alive.
-Since Bash.bash runs a new, disposable shell process, we create a function
+Since BashMacros.bash runs a new, disposable shell process, we create a function
     to keep the command handy, but direct activation is best done externally
     before starting Julia, or by using the interactive `paladin_launch` function below.
         """
 function venv()
     # Execute the activation command. Note: Its effect will be lost immediately
-    # after the shell spawned by Bash.bash exits.
+    # after the shell spawned by BashMacros.bash exits.
     BashMacros.bash(VENV_ACTIVATE)
     @warn "Virtual environment activated in disposable shell. Effect may not persist."
 end
@@ -477,13 +477,13 @@ end
 paladin_launch(args::String="")
 
 Activates the virtual environment and then executes the Paladin Python script.
-Uses Bash.bash_prompt to handle the interactive session correctly.
+Uses BashMacros.bash_prompt to handle the interactive session correctly.
 """
 function paladin_launch(args::String="")
     # The command string is built using local variables.
     full_cmd = "$VENV_ACTIVATE && python $PALADIN_SCRIPT $args"
 
-    # CORRECT: Use the function Bash.bash_prompt to pass the command string
+    # CORRECT: Use the function BashMacros.bash_prompt to pass the command string
     # as an argument, bypassing macro scoping issues.
     BashMacros.bash_prompt(full_cmd)
 end

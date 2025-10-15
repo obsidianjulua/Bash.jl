@@ -80,7 +80,6 @@ macro bashprompt(cmd_str)
     # 1. We must explicitly unquote the variable cmd_str using $(esc(cmd_str))
     #    to ensure the variable's VALUE (the string) is interpolated into the
     #    Cmd object at runtime, not the variable's NAME (interactive_cmd).
-
     # 2. The construction is $`bash -c $cmd_str`
     #    The inner $ is for the Cmd backticks.
     #    The outer $ is to substitute the variable's value from the REPL/calling scope.

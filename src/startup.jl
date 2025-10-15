@@ -7,7 +7,7 @@
 # examples given in bashrc file paste into your .bashrc and change the thread equation
 
 include("BashMacros.jl")                      # Custom Bash integration framework
-using .BashMacros                               # Access functions/macros from Bash.jl
+using .BashMacros                               # Access functions/macros from BashMacrosjl
 using Revise                              # Automatic code reloading
 using REPL                                # For REPL customization (e.g., numbered prompt)
 using LinearAlgebra                       # Essential for math operations (e.g., BLAS threads in env_info)
@@ -56,12 +56,12 @@ end
 
 function python(args::String="")
     full_cmd = "$PYTHON_CMD $args"
-    Bash.bash(full_cmd) # Non-interactive execution for running scripts
+    BashMacros.bash(full_cmd) # Non-interactive execution for running scripts
 end
 
 function grep(args::String)
     full_cmd = "$GREP_CMD $args"
-    Bash.bash(full_cmd)
+    BashMacros.bash(full_cmd)
 end
 
 # Julia/Bash Execution Bridge (+J & +JX Equivalents)
@@ -89,36 +89,36 @@ end
 function rgrep(pattern::String)
     # Recursive grep for pattern in current directory
     cmd = "grep -r --color=auto $(pattern) ."
-    Bash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 function grep_logs(pattern::String; since::String="1 hour ago")
     # Searches system logs with a time filter
     cmd = "journalctl --since=\"$since\" | grep -i --color=auto \"$pattern\""
-    Bash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 function ls(args::String="")
     # Versatile ls command with long-listing and all-files flags
     cmd = "ls -la $args"
-    Bash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 # --- 9. File Operations ---
 
 """touch(file::String): Creates an empty file or updates timestamp."""
 function touch(file::String)
-    Bash.bash("touch \"$file\"")
+    BashMacros.bash("touch \"$file\"")
 end
 
 """rm(path::String): Recursively and forcefully removes a file or directory (sudo)."""
 function rm(path::String)
-    Bash.bash("sudo rm -rf \"$path\"")
+    BashMacros.bash("sudo rm -rf \"$path\"")
 end
 
 """mkcd(dir::String): Creates and changes directory into it."""
 function mkcd(dir::String)
-    Bash.bash("mkdir -p \"$dir\" && cd \"$dir\"")
+    BashMacros.bash("mkdir -p \"$dir\" && cd \"$dir\"")
 end
 
 """cpb(source::String): Copies a file and creates a timestamped backup."""
@@ -126,7 +126,7 @@ function cpb(source::String)
     cmd = """
     cp \"$source\" \"$source.bak.\$(date +%Y%m%d_%H%M%S)\"
     """
-    Bash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 """fe(): Find and edit a file using fzf."""
@@ -347,19 +347,11 @@ function code_prewalk(ex::Expr)
 end
 
 """
-ollama_menu()
-
-Presents an interactive menu of Ollama models defined as constants
-and executes the selected model using the corresponding macro.
-"""
-
-
-"""
 include_progress(dir=".")
 
 Finds all .jl files recursively and includes them, showing a progress bar widget.
 This is a robust replacement for the basic `include_all`.
-    """
+"""
 function include_progress(dir=".")
     jl_files = find_jl_files(dir)
     num_files = length(jl_files)
