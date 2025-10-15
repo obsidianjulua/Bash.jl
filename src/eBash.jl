@@ -1,5 +1,4 @@
 #!/usr/bin/env julia
-#!/usr/bin/env julia
 
 """
 Pipe a Julia string to a Bash command's STDIN and capture STDOUT as a string.
@@ -9,10 +8,10 @@ function julia_to_bash_pipe(input_data::String, cmd::String)
     # The `cmd` is executed by bash -c
     bash_cmd = `bash -c $cmd`
 
-    # Create a pipeline: input data (string) -> bash_cmd -> output (string)
-    # The `input` keyword argument automatically creates an IOBuffer from the string
-    # and pipes it to the command's STDIN.
-    return read(pipeline(bash_cmd, stderr=stderr), String, input=input_data)
+    # Create a pipeline where stdin is an IOBuffer of the input data,
+    # and stderr is redirected to the main process's stderr.
+    pl = pipeline(bash_cmd, stdin=IOBuffer(input_data), stderr=stderr)
+    return read(pl, String)
 end
 
 """
