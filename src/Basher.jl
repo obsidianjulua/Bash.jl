@@ -1,15 +1,31 @@
 #!/usr/bin/env julia
 
 """
-Bash: Julia–Bash Integration Framework
+Basher: Julia–Bash Integration Framework
 Core functions and symbol table for unified LSP
     """
 
-module Bash
+module Basher
 
 using Distributed
 using Dates
+
 include("eBash.jl")
+
+"""
+Exception thrown when a Bash command fails (non-zero exit code).
+"""
+struct BashExecutionError <: Exception
+    command::String
+    stdout::String
+    stderr::String
+    exitcode::Int
+end
+
+Base.showerror(io::IO, e::BashExecutionError) =
+    print(io, "BashExecutionError (Code ", e.exitcode, "): Command failed.\n",
+          "  Command: ", e.command, "\n",
+          "  STDERR: ", e.stderr)
 
 # ============================================================================
 # CORE EXECUTION FUNCTIONS
@@ -445,6 +461,7 @@ export bash, arg_bash, spawn, capture_output,
     julia_learn, j_bash, b_julia,
     learn_args!, predict_args_count, get_dynamic_const,
     build_signature, add_symbol!, get_symbol, search_commands!,
-    @bashwrap, @bashcap, @bashpipe
+    @bashwrap, @bashcap, @bashpipe,
+    BashExecutionError, julia_to_bash_pipe, @bashif, bash_return, parse_and_process, execute_or_throw, @bashsafe, @bashprompt, bash_prompt
 
 end # module

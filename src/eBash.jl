@@ -48,22 +48,6 @@ function parse_and_process(data::String)
 end
 
 """
-Exception thrown when a Bash command fails (non-zero exit code).
-"""
-struct BashExecutionError <: Exception
-    command::String
-    stdout::String
-    stderr::String
-    exitcode::Int
-end
-
-Base.showerror(io::IO, e::BashExecutionError) =
-    print(io, "BashExecutionError (Code ", e.exitcode, "): Command failed.\n",
-        "  Command: ", e.command, "\n",
-        "  STDERR: ", e.stderr)
-
-
-"""
 Execute a Bash command and throw BashExecutionError if the exit code is non-zero.
     Returns STDOUT on success.
     """

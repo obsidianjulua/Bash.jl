@@ -3,18 +3,20 @@
 # Julia-Bash Integration, Workspace Tools, and Workflow Utilities
 # =========================================================================
 
+# --- 1. Module and Package Imports ---
 # NOTE: Ensure Julia is launched with `--threads` flag set externally (e.g., in .bashrc)
-# examples given in bashrc file paste into your .bashrc and change the thread equation
 
-include("Basher.jl")                      # Custom Bash integration framework
+include("/home/grim/.julia/config/Bash.jl") # Custom Bash integration framework
 using .Bash                               # Access functions/macros from Bash.jl
 using Revise                              # Automatic code reloading
 using REPL                                # For REPL customization (e.g., numbered prompt)
 using LinearAlgebra                       # Essential for math operations (e.g., BLAS threads in env_info)
 using InteractiveUtils                    # For introspection tools like @which, methods
 using MacroTools                          # For expression manipulation (prewalk, postwalk)
-using ProgressMeter                       # For UI progress meters
+using ProgressMeter
+using TerminalMenus
 
+# --- 2. Initialization Hook (atreplinit) ---
 # Code here runs *after* the REPL is fully initialized.
 atreplinit() do repl
     try
@@ -26,17 +28,49 @@ atreplinit() do repl
     # Add any other REPL-specific setup here (e.g., OhMyREPL theme, if installed)
 end
 
+# --- 3. Constant Command Definitions ---
 # Defines constant strings for common external executables/commands.
 # This centralizes command strings, making macros/functions cleaner and easier to update.
+const LLAMA3_CMD = "ollama run llama3.2:latest"
+const OCODE_CMD = "ollama run codellama:7b-instruct-q4_K_M"
+const SMOLLM2_CMD = "ollama run smollm2:latest"
+const PYCHARM_CMD = "pycharm"
 const CD_CMD = "cd"
+const EDITOR = "nano"
 const PYTHON_CMD = "python"
 const GREP_CMD = "grep"
-const EDITOR = get(ENV, "EDITOR", "nano")
+const PALADIN_SCRIPT = "/home/grim/Desktop/Projects/Paladin/Paladin_v2.py"
+const VENV_ACTIVATE = "source /home/grim/venv/bin/activate"
+const PALADIN_MODEL = "ollama run Paladin"
 
-# Simple wrappers for common Bash directory changes. change or replicate for other locations
-function home()
-    cmd = "cd ~"
-    basher.bash(cmd)
+# --- 4. Movement Functions (Leveraging Bash.bash) ---
+# Simple wrappers for common Bash directory changes.
+home() = Bash.bash("cd ~")
+Projects() = Bash.bash("cd /home/grim/Desktop/Projects")
+
+# --- 5. Zero-Argument Command Macros ---
+# Macros that run constant commands via the @bashwrap macro (non-interactive shell).
+
+macro llama3()
+    return :(@bashwrap(LLAMA3_CMD))
+end
+
+
+macro Paladin_model()
+    return :(@bashwrap(PALADIN_MODEL))
+end
+
+macro Ocode()
+    return :(@bashwrap(OCODE_CMD))
+end
+
+macro smollm2()
+    return :(@bashwrap(SMOLLM2_CMD))
+end
+
+# FIX 1: Corrected macro to use PYCHARM_CMD constant
+macro pycharm()
+    return :(@bashwrap(PYCHARM_CMD))
 end
 
 # Standard macro for quickly checking methods of a function
@@ -46,11 +80,11 @@ macro methods(ex)
     end
 end
 
+# --- 6. Core Terminal Tool Functions (With Arguments) ---
+
 function nano(args::String="")
-    if isempty(Sys.which(EDITOR))
-        error("Editor '$EDITOR' not found in PATH")
-    end
-    full_cmd = "$EDITOR $(Base.shell_escape(args))"
+    full_cmd = "$EDITOR $args"
+    # FIX 2: Use @bashprompt for interactive editor session
     @bashprompt(full_cmd)
 end
 
@@ -64,7 +98,7 @@ function grep(args::String)
     Bash.bash(full_cmd)
 end
 
-# Julia/Bash Execution Bridge (+J & +JX Equivalents)
+# --- 7. Julia/Bash Execution Bridge (+J & +JX Equivalents) ---
 
 # Helper: Executes Julia code in a new Julia process
 function j_exec(code::String)
@@ -82,9 +116,11 @@ function j_exec_multi(code::String, args...)
         final_code = replace(final_code, "?" => string(arg); count=1)
     end
 
-    # Execute the final code string using the helper function
+    # FIX 3: Execute the final code string using the helper function
     j_exec(final_code)
 end
+
+# --- 8. Grep & Logging Utilities ---
 
 function rgrep(pattern::String)
     # Recursive grep for pattern in current directory
@@ -129,6 +165,8 @@ function cpb(source::String)
     Bash.bash(cmd)
 end
 
+# --- 10. FZF Integration ---
+
 """fe(): Find and edit a file using fzf."""
 function fe()
     cmd = """
@@ -146,6 +184,8 @@ function fif(search_pattern::String)
     """
     @bashprompt(cmd)
 end
+
+# --- 11. REPL Introspection and Workspace Utilities ---
 
 function clear_vars()
     cleared = []
@@ -352,7 +392,32 @@ ollama_menu()
 Presents an interactive menu of Ollama models defined as constants
 and executes the selected model using the corresponding macro.
 """
+function ollama_menu()
+    # List of (Display Name, Macro Expression) pairs
+    model_options = [
+        "llama3.2:latest" => :(@llama3),
+        "codellama:7b-instruct" => :(@Ocode),
+        "smollm2:latest" => :(@smollm2),
+        "Exit Menu" => nothing
+    ]
 
+    # Create the menu for display names
+    menu = RadioMenu([m[1] for m in model_options], pagesize=5)
+
+    # Request user input
+    choice = request("Select an Ollama Model to Run:", menu)
+
+    if 1 <= choice <= length(model_options) - 1
+        # Get the expression (e.g., :(@llama3)) and execute it
+        model_macro_expr = model_options[choice][2]
+        println("Launching $(model_options[choice][1])...")
+        eval(model_macro_expr)
+    elseif choice == length(model_options)
+        println("Menu exited.")
+    else
+        println("Selection cancelled.")
+    end
+end
 
 """
 include_progress(dir=".")
@@ -391,9 +456,81 @@ function include_progress(dir=".")
     println("Successfully processed $num_files file(s).")
 end
 
-# Makes all custom functions and macros available without prefixing
-export @methods, nano, python, grep, j_exec
+"""
+venv()
+
+Activates the Python virtual environment defined by VENV_ACTIVATE.
+NOTE: This typically requires running Julia within a shell that is *already*
+in the virtual environment, or using a sub-shell that is kept alive.
+Since Bash.bash runs a new, disposable shell process, we create a function
+    to keep the command handy, but direct activation is best done externally
+    before starting Julia, or by using the interactive `paladin_launch` function below.
+        """
+function venv()
+    # Execute the activation command. Note: Its effect will be lost immediately
+    # after the shell spawned by Bash.bash exits.
+    Bash.bash(VENV_ACTIVATE)
+    @warn "Virtual environment activated in disposable shell. Effect may not persist."
+end
+
+"""
+paladin_launch(args::String="")
+
+Activates the virtual environment and then executes the Paladin Python script.
+Uses Bash.bash_prompt to handle the interactive session correctly.
+"""
+function paladin_launch(args::String="")
+    # The command string is built using local variables.
+    full_cmd = "$VENV_ACTIVATE && python $PALADIN_SCRIPT $args"
+
+    # CORRECT: Use the function Bash.bash_prompt to pass the command string
+    # as an argument, bypassing macro scoping issues.
+    Bash.bash_prompt(full_cmd)
+end
+
+"""
+tool_menu()
+
+Presents an interactive menu of all integrated Ollama models and the Paladin script.
+"""
+function tool_menu()
+    # List of (Display Name, Expression to Eval) pairs
+    model_options = [
+        # --- LLM/Agent Tools ---
+        "Ollama: llama3.2:latest" => :(@llama3),
+        "Ollama: codellama:7b-instruct" => :(@Ocode),
+        "Ollama: smollm2:latest" => :(@smollm2),
+        "Ollama: Paladin (Model Only)" => :(@Paladin_model),
+        "Launch Paladin Script (with venv)" => :(paladin_launch()),
+        "Exit Menu" => nothing
+    ]
+
+    # Create the menu for display names
+    menu = RadioMenu([m[1] for m in model_options], pagesize=10)
+
+    # Request user input
+    choice = request("Select a Tool or Model to Run:", menu)
+
+    if 1 <= choice <= length(model_options) - 1
+        chosen_option = model_options[choice]
+
+        # Simple logging for better feedback
+        println("Executing: $(chosen_option[1])...")
+
+        # Execute the function/macro
+        eval(chosen_option[2])
+
+    elseif choice == length(model_options)
+        println("Menu exited.")
+    else
+        println("Selection cancelled.")
+    end
+end
+
+# --- 12. Exports ---
+# Makes all custom functions and macros available in the global REPL scope without prefixing (e.g., just 'ls()' instead of 'Main.ls()')
+export @llama3, @Ocode, @smollm2, @methods, @pycharm, nano, python, grep, j_exec
 export j_exec_multi, rgrep, grep_logs, fe, ls, mkcd, rm, touch, fif, cpb, clear_vars
 export find_functions, find_jl_files, include_all, load_workspace, save_workspace
-export memory_usage, compare_performance, inspect, env_info, source, code_prewalk
-export home, Projects, include_progress
+export memory_usage, compare_performance, inspect, env_info, source, code_prewalk, tool_menu
+export home, Projects, ollama_menu, include_progress, venv, paladin_launch, @Paladin_model

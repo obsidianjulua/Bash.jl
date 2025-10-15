@@ -1,0 +1,104 @@
+#!/usr/bin/bash
+#
+set -euo pipefail
+shopt -s expand_aliases
+#
+# =========================================================================
+# JULIA THREAD OPTIMIZATION (Half Cores Reserved)
+# =========================================================================
+#
+# Check if JULIA_NUM_THREADS is NOT already set to prevent overriding manual settings
+if [ -z "$JULIA_NUM_THREADS" ]; then
+    # Get total number of logical cores
+    TOTAL_THREADS=$(nproc)
+
+    # Calculate half the threads (Bash integer division automatically floors)
+    TARGET_THREADS=$((TOTAL_THREADS / 2))
+
+    # Ensure thread count is at least 1
+    if [ "$TARGET_THREADS" -lt 1 ]; then
+        TARGET_THREADS=1
+    fi
+
+    # Set the global environment variable
+    export JULIA_NUM_THREADS="$TARGET_THREADS"
+
+    # Optional: Print a message only when starting a new shell
+    # if [[ $- == *i* ]]; then
+    #     echo "Julia threads set to $TARGET_THREADS globally."
+    # fi
+fi
+#
+# =========================================================================
+# JULIA THREAD ALIAS (Half Cores Reserved on REPL launch)
+# =========================================================================
+#
+# Define a function to calculate threads and launch Julia
+function julia_half_threads() {
+    # Get total number of logical cores
+    TOTAL_THREADS=$(nproc)
+    TARGET_THREADS=$((TOTAL_THREADS / 2))
+
+    if [ "$TARGET_THREADS" -lt 1 ]; then
+        TARGET_THREADS=1
+    fi
+
+    # Launch Julia, passing all arguments ($@) to it, and setting threads via flag
+    echo "Launching Julia with --threads $TARGET_THREADS..."
+    command julia --threads "$TARGET_THREADS" "$@"
+}
+
+# Alias 'julia' to use this function
+alias julia='julia_half_threads'
+#
+#====================================================================
+# JULIA BRIDGE SHORTCUTS
+#====================================================================
+# Run arbitrary Julia code with project context
++J() {
+    echo "Calling Julia with: $*"
+    julia --project=. -e "$*"
+}
+#
+# Include a file in Julia with project context
++JF() {
+    julia --project=. -e "include(\"$1\")"
+}
+#
+# Call a Julia function from a file, passing additional args
++JCall() {
+    # Usage: +JCall myfile.jl myfunc arg1 arg2 ...
+    file=$1
+    func=$2
+    shift 2
+    julia --project=. -e "include(\"$file\"); $func($(
+        IFS=,
+        echo "$*"
+    ))"
+}
+#
+# Replace a ? in Julia code with the first argument
++JQ() {
+    # Usage: +JQ 'myfunc(?)' arg1
+    local code="${1//\?/$2}"
+    julia --project=. -e "$code"
+}
+#
+# Replace each ? with each corresponding argument (multiple args)
++JX() {
+    # Usage: +JX 'foo(?, ?)' bar baz
+    local code="$1"
+    shift
+    for arg in "$@"; do
+        code="${code/\?/$arg}"
+    done
+    julia --project=. -e "$code"
+}
+#
+# Pipe to Julia code block as stdin
++JP() {
+    # Usage: some_command | +JP 'for line in eachline(stdin); println(uppercase(line)); end'
+    julia --project=. -e "$1"
+}
+#
+export -f julia_half_threads +J +JF +JCall +JQ +JX +JP
