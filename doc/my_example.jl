@@ -6,8 +6,8 @@
 # --- 1. Module and Package Imports ---
 # NOTE: Ensure Julia is launched with `--threads` flag set externally (e.g., in .bashrc)
 
-include("/home/grim/.julia/config/JBash.jl") # Custom Bash integration framework
-using .JBash                               # Access functions/macros from JBash.jl
+include("/home/grim/.julia/config/BashMacros.jl") # Custom Bash integration framework
+using .BashMacros                               # Access functions/macros from BashMacros.jl
 using Revise                              # Automatic code reloading
 using REPL                                # For REPL customization (e.g., numbered prompt)
 using LinearAlgebra                       # Essential for math operations (e.g., BLAS threads in env_info)
@@ -45,8 +45,8 @@ const PALADIN_MODEL = "ollama run Paladin"
 
 # --- 4. Movement Functions (Leveraging Bash.bash) ---
 # Simple wrappers for common Bash directory changes.
-home() = JBash.bash("cd ~")
-Projects() = JBash.bash("cd /home/grim/Desktop/Projects")
+home() = BashMacros.bash("cd ~")
+Projects() = BashMacros.bash("cd /home/grim/Desktop/Projects")
 
 # --- 5. Zero-Argument Command Macros ---
 # Macros that run constant commands via the @bashwrap macro (non-interactive shell).
@@ -90,12 +90,12 @@ end
 
 function python(args::String="")
     full_cmd = "$PYTHON_CMD $args"
-    JBash.bash(full_cmd) # Non-interactive execution for running scripts
+    BashMacros.bash(full_cmd) # Non-interactive execution for running scripts
 end
 
 function grep(args::String)
     full_cmd = "$GREP_CMD $args"
-    JBash.bash(full_cmd)
+    BashMacros.bash(full_cmd)
 end
 
 # --- 7. Julia/Bash Execution Bridge (+J & +JX Equivalents) ---
@@ -125,36 +125,36 @@ end
 function rgrep(pattern::String)
     # Recursive grep for pattern in current directory
     cmd = "grep -r --color=auto $(pattern) ."
-    JBash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 function grep_logs(pattern::String; since::String="1 hour ago")
     # Searches system logs with a time filter
     cmd = "journalctl --since=\"$since\" | grep -i --color=auto \"$pattern\""
-    JBash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 function ls(args::String="")
     # Versatile ls command with long-listing and all-files flags
     cmd = "ls -la $args"
-    JBash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 # --- 9. File Operations ---
 
 """touch(file::String): Creates an empty file or updates timestamp."""
 function touch(file::String)
-    JBash.bash("touch \"$file\"")
+    BashMacros.bash("touch \"$file\"")
 end
 
 """rm(path::String): Recursively and forcefully removes a file or directory (sudo)."""
 function rm(path::String)
-    JBash.bash("sudo rm -rf \"$path\"")
+    BashMacros.bash("sudo rm -rf \"$path\"")
 end
 
 """mkcd(dir::String): Creates and changes directory into it."""
 function mkcd(dir::String)
-    JBash.bash("mkdir -p \"$dir\" && cd \"$dir\"")
+    BashMacros.bash("mkdir -p \"$dir\" && cd \"$dir\"")
 end
 
 """cpb(source::String): Copies a file and creates a timestamped backup."""
@@ -162,7 +162,7 @@ function cpb(source::String)
     cmd = """
     cp \"$source\" \"$source.bak.\$(date +%Y%m%d_%H%M%S)\"
     """
-    JBash.bash(cmd)
+    BashMacros.bash(cmd)
 end
 
 # --- 10. FZF Integration ---
@@ -469,7 +469,7 @@ Since Bash.bash runs a new, disposable shell process, we create a function
 function venv()
     # Execute the activation command. Note: Its effect will be lost immediately
     # after the shell spawned by Bash.bash exits.
-    JBash.bash(VENV_ACTIVATE)
+    BashMacros.bash(VENV_ACTIVATE)
     @warn "Virtual environment activated in disposable shell. Effect may not persist."
 end
 
@@ -485,7 +485,7 @@ function paladin_launch(args::String="")
 
     # CORRECT: Use the function Bash.bash_prompt to pass the command string
     # as an argument, bypassing macro scoping issues.
-    JBash.bash_prompt(full_cmd)
+    BashMacros.bash_prompt(full_cmd)
 end
 
 """

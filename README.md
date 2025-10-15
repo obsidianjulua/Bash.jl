@@ -39,17 +39,17 @@ You must copy the contents of the `bashrc` file (provided in this repository) in
 
 ### 2. Configure Julia Startup (`~/.julia/config/startup.jl`)
 
-The provided `startup.jl` file automatically loads the core `JBash.jl` module and sets up various REPL quality-of-life improvements (like `Revise.jl` and numbered prompts).
+The provided `startup.jl` file automatically loads the core `BashMacros.jl` module and sets up various REPL quality-of-life improvements (like `Revise.jl` and numbered prompts).
 
 Place `startup.jl` in your Julia configuration directory (e.g., `~/.julia/config/startup.jl`).
 
-> **Note:** Ensure `JBash.jl` and its dependencies (`eBash.jl`, etc.) are accessible (e.g., by ensuring your project directory is in the `JULIA_LOAD_PATH`).
+> **Note:** Ensure `BashMacros.jl` and its dependencies (`eBash.jl`, etc.) are accessible (e.g., by ensuring your project directory is in the `JULIA_LOAD_PATH`).
 
 ```julia
 # In your ~/.julia/config/startup.jl file:
 # ... (contents from the provided startup.jl file)
-include("JBash.jl") # Custom Bash integration framework
-using .JBash         # Access functions/macros like @bash, bash_full
+include("BashMacros.jl") # Custom Bash integration framework
+using .BashMacros         # Access functions/macros like @bash, bash_full
 using Revise
 # ... other utilities
 ```

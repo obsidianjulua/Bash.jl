@@ -1,11 +1,11 @@
 #!/usr/bin/env julia
 
 """
-JBash: Julia–Bash Integration Framework
+BashMacros: Julia–Bash Integration Framework
 Core functions and symbol table for unified LSP
 """
 
-module JBash
+module BashMacros
 
 using Distributed
 using Dates
