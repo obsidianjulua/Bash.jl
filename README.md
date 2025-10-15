@@ -71,7 +71,7 @@ Use Julia to manage application state and intelligently decide which Bash comman
 
 | Macro/Function     | Use Case            | Description                                                              |
 | ------------------ | ------------------- | ------------------------------------------------------------------------ |
-| `@bash "cmd"`      | Inline Execution    | Run Bash command synchronously. Prints output to Julia STDOUT.           |
+| `@bashwrap("cmd")`      | Inline Execution    | Run Bash command synchronously. Prints output to Julia STDOUT.           |
 | `@bashif("cmd")`   | Conditional Flow    | Returns `true` if Bash command succeeds (exit code 0), otherwise `false`.  |
 | `bash_full("cmd")` | Capture Metadata    | Returns `(stdout, stderr, exitcode)`. Essential for robust error handling. |
 | `@bashprompt("cmd")`| Interactive Shell   | Executes a command allowing user interaction (e.g., `nano`, `vi`).       |
