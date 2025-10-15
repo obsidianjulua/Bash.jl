@@ -3,7 +3,7 @@
 """
 Basher: Julia–Bash Integration Framework
 Core functions and symbol table for unified LSP
-    """
+"""
 
 module Basher
 
@@ -24,8 +24,8 @@ end
 
 Base.showerror(io::IO, e::BashExecutionError) =
     print(io, "BashExecutionError (Code ", e.exitcode, "): Command failed.\n",
-          "  Command: ", e.command, "\n",
-          "  STDERR: ", e.stderr)
+        "  Command: ", e.command, "\n",
+        "  STDERR: ", e.stderr)
 
 # ============================================================================
 # CORE EXECUTION FUNCTIONS
