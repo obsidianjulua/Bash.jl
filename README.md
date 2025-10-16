@@ -374,9 +374,7 @@ bash_stream("find / -name '*.log' 2>/dev/null") do line
 end
 
 # Collect with filter
-jl_files = bash_stream_collect("find . -type f") do line
-    endswith(line, ".jl")
-end
+jl_files = bash_stream_collect("find . -type f", filter=line -> endswith(line, ".jl"))
 
 # Progress tracking
 results = bash_map_progress("process {1}", items, show_progress=true)
@@ -517,7 +515,7 @@ jrepl
 
 ### Streaming
 - `bash_stream(cmd, callback)` - Stream output line-by-line
-- `bash_stream_collect(cmd, filter)` - Collect with filtering
+- `bash_stream_collect(cmd; filter=nothing)` - Collect with optional filtering
 
 ### Piping
 - `julia_to_bash_pipe(data, cmd)` - Pipe Julia data to bash
@@ -548,7 +546,7 @@ jrepl
 ```julia
 # Basic installation
 using Pkg
-Pkg.add(url="https://github.com/YOUR_USERNAME/BashMacros.jl")
+Pkg.add(url="https://github.com/obsidianjulua/BashMacros.jl")
 
 # With shell integration
 using BashMacros
