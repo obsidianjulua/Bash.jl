@@ -362,7 +362,7 @@ bash_remote_file("script.sh", hosts, "/tmp/script.sh")
 
 # Cluster execution
 config = ClusterConfig(["node1", "node2", "node3", "node4"])
-results = bash_cluster("hostname && uptime", config)
+results = bash_cluster("uname -n && uptime", config)
 ```
 
 ### Streaming & Progress

@@ -52,7 +52,8 @@ println("-" ^ 50)
 @bashwrap "date +%Y-%m-%d"
 
 # Capture with @bashcap
-hostname = @bashcap "hostname"
+# Use uname -n instead of hostname for better portability
+hostname = @bashcap "uname -n"
 println("Hostname: ", strip(hostname))
 
 # Pipe and print with @bashpipe
