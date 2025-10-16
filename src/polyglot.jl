@@ -34,8 +34,14 @@ mutable struct PolyglotContext
     bash_env::Dict{String,String}
     current_lang::Symbol
     output_buffer::Vector{String}
+    julia_module::Module
+    tracked_variables::Set{Symbol}  # Track user-defined variables
 
-    PolyglotContext() = new(Dict{Symbol,Any}(), Dict{String,String}(), :bash, String[])
+    function PolyglotContext()
+        mod = Module()
+        Core.eval(mod, :(using BashMacros))
+        new(Dict{Symbol,Any}(), Dict{String,String}(), :bash, String[], mod, Set{Symbol}())
+    end
 end
 
 """
@@ -85,7 +91,7 @@ function parse_polyglot_file(filename::String)
                 push!(blocks, (current_lang, join(current_block, '\n')))
                 current_block = String[]
             end
-            push!(blocks, (:julia, m.captures[1]))
+            push!(blocks, (:julia, String(m.captures[1])))
             continue
         elseif (m = match(BASH_INLINE, line)) !== nothing
             # Inline Bash execution
@@ -93,7 +99,7 @@ function parse_polyglot_file(filename::String)
                 push!(blocks, (current_lang, join(current_block, '\n')))
                 current_block = String[]
             end
-            push!(blocks, (:bash, m.captures[1]))
+            push!(blocks, (:bash, String(m.captures[1])))
             continue
         end
 
@@ -147,39 +153,51 @@ function execute_polyglot_file(filename::String; verbose::Bool=false)
 end
 
 """
+Extract variable names from Julia code (simple heuristic).
+"""
+function extract_variable_names(code::String)
+    vars = Set{Symbol}()
+    # Match simple assignments: varname = ...
+    # Use multiline flag by splitting and matching each line
+    for line in split(code, '\n')
+        m = match(r"^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=", line)
+        if m !== nothing
+            push!(vars, Symbol(m.captures[1]))
+        end
+    end
+    return vars
+end
+
+"""
 Execute Julia code block with context.
 """
 function execute_julia_block(code::String, ctx::PolyglotContext)
-    # Import bash variables
+    # Import bash variables into Julia module
     for (k, v) in ctx.bash_env
         try
-            ctx.julia_env[Symbol(k)] = v
+            sym = Symbol(k)
+            Core.eval(ctx.julia_module, :($sym = $v))
+            ctx.julia_env[sym] = v
         catch
         end
     end
 
-    # Execute in isolated module to capture variables
-    mod = Module()
-    Core.eval(mod, :(using BashMacros))
-
-    # Add context variables
-    for (k, v) in ctx.julia_env
-        Core.eval(mod, :($k = $v))
-    end
-
-    # Execute code
+    # Execute code in persistent module
     try
-        # Wrap code in begin...end to handle multiple statements
-        wrapped_code = "begin\n$(code)\nend"
-        result = Core.eval(mod, Meta.parse(wrapped_code))
+        # Extract variable names from code before execution
+        new_vars = extract_variable_names(code)
 
-        # Export new variables
-        for name in names(mod, all=true)
-            if !startswith(string(name), '#') && name != :eval && name != :include
-                try
-                    ctx.julia_env[name] = Core.eval(mod, name)
-                catch
-                end
+        # Use include_string to execute code in module context
+        result = include_string(ctx.julia_module, code)
+
+        # Export detected variables from module to context
+        for varname in new_vars
+            try
+                val = Core.eval(ctx.julia_module, varname)
+                ctx.julia_env[varname] = val
+                push!(ctx.tracked_variables, varname)
+            catch
+                # Variable might not exist if assignment was conditional
             end
         end
 
@@ -198,7 +216,9 @@ function execute_bash_block(code::String, ctx::PolyglotContext)
     env_exports = String[]
     for (k, v) in ctx.julia_env
         if v isa Union{String,Number,Bool}
-            push!(env_exports, "export $(String(k))='$v'")
+            # Escape single quotes in the value
+            escaped_v = replace(string(v), "'" => "'\\''")
+            push!(env_exports, "export $(String(k))='$escaped_v'")
         end
     end
 
@@ -207,6 +227,11 @@ function execute_bash_block(code::String, ctx::PolyglotContext)
 
     # Execute bash
     stdout, stderr, exitcode = bash_full(full_code)
+
+    # Print stdout if non-empty
+    if !isempty(strip(stdout))
+        print(stdout)
+    end
 
     # Capture bash exports
     if exitcode == 0
@@ -278,7 +303,7 @@ function execute_polyglot_string(code::String)
                 end
                 current_block = String[]
             end
-            execute_julia_block(m.captures[1], ctx)
+            execute_julia_block(String(m.captures[1]), ctx)
             continue
         elseif (m = match(BASH_INLINE, line)) !== nothing
             if !isempty(current_block)
@@ -289,7 +314,7 @@ function execute_polyglot_string(code::String)
                 end
                 current_block = String[]
             end
-            execute_bash_block(m.captures[1], ctx)
+            execute_bash_block(String(m.captures[1]), ctx)
             continue
         end
 
