@@ -315,11 +315,13 @@ Stream and collect lines, optionally filtering.
 function bash_stream_collect(cmd::String; filter::Union{Function,Nothing}=nothing)
     lines = String[]
 
-    bash_stream(cmd) do line
+    callback = function(line)
         if filter === nothing || filter(line)
             push!(lines, line)
         end
     end
+
+    bash_stream(cmd, callback)
 
     return lines
 end

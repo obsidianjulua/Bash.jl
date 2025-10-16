@@ -268,53 +268,53 @@ using Dates
     end
 
     # NOTE: bash_async has bugs in bastributed.jl - it passes a Tuple to bash_full
-    # @testset "Bastributed - Async Execution" begin
-    #     # Test bash_async()
-    #     completed = Ref(false)
-    #     callback_fn = result -> begin
-    #         completed[] = true
-    #     end
-    #     task = bash_async("sleep 0.1 && echo done", callback=callback_fn)
-    #     wait(task)
-    #     @test completed[] == true
-    # end
+     @testset "Bastributed - Async Execution" begin
+         # Test bash_async()
+         completed = Ref(false)
+         callback_fn = result -> begin
+             completed[] = true
+         end
+         task = bash_async("sleep 0.1 && echo done", callback=callback_fn)
+         wait(task)
+         @test completed[] == true
+     end
 
     # NOTE: bash_stream implementation has bugs - wrong argument order in bash_stream_collect
-    # @testset "Bastributed - Streaming" begin
-    #     # Test bash_stream() - function signature is bash_stream(cmd, callback)
-    #     lines_collected = String[]
-    #     callback_fn = line -> push!(lines_collected, line)
-    #     bash_stream("seq 1 5", callback_fn)
-    #     @test length(lines_collected) == 5
-    #
-    #     # Test bash_stream_collect()
-    #     lines = bash_stream_collect("seq 1 3")
-    #     @test length(lines) == 3
-    #
-    #     # Test with filter
-    #     filter_fn = line -> parse(Int, line) % 2 == 0
-    #     filtered = bash_stream_collect("seq 1 10", filter=filter_fn)
-    #     @test all(line -> parse(Int, line) % 2 == 0, filtered)
-    # end
+     @testset "Bastributed - Streaming" begin
+         # Test bash_stream() - function signature is bash_stream(cmd, callback)
+         lines_collected = String[]
+         callback_fn = line -> push!(lines_collected, line)
+         bash_stream("seq 1 5", callback_fn)
+         @test length(lines_collected) == 5
+    
+         # Test bash_stream_collect()
+         lines = bash_stream_collect("seq 1 3")
+         @test length(lines) == 3
+    
+         # Test with filter
+         filter_fn = line -> parse(Int, line) % 2 == 0
+         filtered = bash_stream_collect("seq 1 10", filter=filter_fn)
+         @test all(line -> parse(Int, line) % 2 == 0, filtered)
+    end
 
     # ========================================================================
     # POLYGLOT EXECUTION
     # ========================================================================
 
     # NOTE: Polyglot execution has bugs with string type conversion
-    # @testset "Polyglot Execution" begin
-    #     # Test simple polyglot execution (without complex string interpolation)
-    #     code = """x = 10
-    # #B> echo "Bash inline test"
-    # y = 20"""
-    #     ctx = execute_polyglot_string(code)
-    #     @test ctx !== nothing
-    #
-    #     # Test detect_file_language() via BashMacros module
-    #     @test BashMacros.detect_file_language("test.jl") == :julia
-    #     @test BashMacros.detect_file_language("test.sh") == :bash
-    #     @test BashMacros.detect_file_language("test.bash") == :bash
-    # end
+     @testset "Polyglot Execution" begin
+         # Test simple polyglot execution (without complex string interpolation)
+         code = """x = 10
+     #B> echo "Bash inline test"
+     y = 20"""
+         ctx = execute_polyglot_string(code)
+         @test ctx !== nothing
+    
+         # Test detect_file_language() via BashMacros module
+         @test BashMacros.detect_file_language("test.jl") == :julia
+         @test BashMacros.detect_file_language("test.sh") == :bash
+         @test BashMacros.detect_file_language("test.bash") == :bash
+    end
 
     @testset "Polyglot Detection Only" begin
         # Test detect_file_language() via BashMacros module
