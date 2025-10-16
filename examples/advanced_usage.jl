@@ -107,10 +107,11 @@ println("-" ^ 70)
 
 # Execute async with callback
 println("Starting async task...")
-task = bash_async("sleep 2 && echo 'Async complete!'") do result
+callback_fn = result -> begin
     stdout, stderr, exitcode = result
     println("Callback: $(strip(stdout))")
 end
+task = bash_async("sleep 2 && echo 'Async complete!'", callback=callback_fn)
 
 println("Continuing while task runs in background...")
 sleep(1)
@@ -129,11 +130,12 @@ println("5. Streaming Output")
 println("-" ^ 70)
 
 println("Streaming find output:")
-count = 0
-bash_stream("find . -name '*.jl' 2>/dev/null | head -5") do line
-    global count += 1
-    println("  [$count] $(strip(line))")
+count = Ref(0)
+callback_fn = line -> begin
+    count[] += 1
+    println("  [$(count[])] $(strip(line))")
 end
+bash_stream("find . -name '*.jl' 2>/dev/null | head -5", callback_fn)
 
 println()
 

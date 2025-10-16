@@ -169,7 +169,9 @@ function execute_julia_block(code::String, ctx::PolyglotContext)
 
     # Execute code
     try
-        result = Core.eval(mod, Meta.parse(code))
+        # Wrap code in begin...end to handle multiple statements
+        wrapped_code = "begin\n$(code)\nend"
+        result = Core.eval(mod, Meta.parse(wrapped_code))
 
         # Export new variables
         for name in names(mod, all=true)

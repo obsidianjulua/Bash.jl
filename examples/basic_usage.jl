@@ -20,8 +20,8 @@ println("-" ^ 50)
 # Simple execution
 bash("echo 'Hello from Bash!'")
 
-# Execute with arguments
-arg_bash("ls", ["-l", "-h", "/tmp"])
+# Execute with arguments (arg_bash properly passes each arg separately)
+arg_bash("echo", ["arg1", "arg2", "arg3"])
 
 println()
 
@@ -172,8 +172,8 @@ predicted = predict_args_count("grep")
 println("Predicted grep args: $predicted")
 
 # Get learned pattern
-if haskey(LEARNED_PATTERNS, "grep")
-    pattern = LEARNED_PATTERNS["grep"]
+if haskey(BashMacros.LEARNED_PATTERNS, "grep")
+    pattern = BashMacros.LEARNED_PATTERNS["grep"]
     sig = build_signature("grep", pattern)
     println("Learned signature: $sig")
     println("Confidence: $(round(pattern.confidence * 100, digits=2))%")
@@ -196,7 +196,7 @@ contexts = [
 ]
 
 for cmd in contexts
-    ctx = detect_context(cmd)
+    ctx = BashMacros.detect_context(cmd)
     println("'$cmd' → :$ctx")
 end
 

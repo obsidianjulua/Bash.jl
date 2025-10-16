@@ -89,11 +89,11 @@ function bash_parallel(commands::Vector{String}; worker_ids::Vector{Int}=workers
 end
 
 """
-    bash_async(cmd::String; callback::Union{Function,Nothing}=nothing)
+    bash_async(cmd::Vararg ; callback::Union{Function,Nothing}=nothing)
 
 Execute bash command asynchronously and optionally call callback with result.
 """
-function bash_async(cmd::String; callback::Union{Function,Nothing}=nothing)
+function bash_async(cmd::Vararg; callback::Union{Function,Nothing}=nothing)
     task = @async begin
         result = bash_full(cmd)
         if callback !== nothing
