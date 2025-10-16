@@ -9,8 +9,14 @@ module BashMacros
 
 using Distributed
 using Dates
+using Statistics
 
+# Core modules
 include("eBash.jl")
+include("formatters.jl")
+include("bastributed.jl")
+include("polyglot.jl")
+include("bashrc_gen.jl")
 
 """
 Exception thrown when a Bash command fails (non-zero exit code).
@@ -462,6 +468,21 @@ export bash, arg_bash, spawn, capture_output,
     learn_args!, predict_args_count, get_dynamic_const,
     build_signature, add_symbol!, get_symbol, search_commands!,
     @bashwrap, @bashcap, @bashpipe,
-    BashExecutionError, julia_to_bash_pipe, @bashif, bash_return, parse_and_process, execute_or_throw, @bashsafe, @bashprompt, bash_prompt
+    BashExecutionError, julia_to_bash_pipe, @bashif, bash_return,
+    parse_and_process, execute_or_throw, @bashsafe, @bashprompt, bash_prompt,
+    # Formatters
+    detect_output_type, parse_bash_output, bash_typed, @bashtyped,
+    bash_table, @bashtable, bash_pretty, @bashpretty,
+    # Bastributed
+    bastributed, bash_map, bash_mapreduce, bash_parallel,
+    bash_async, bash_batch, bash_remote, bash_remote_async,
+    bash_remote_file, ClusterConfig, bash_cluster, bash_cluster_map,
+    bash_map_progress, bash_stream, bash_stream_collect,
+    # Polyglot
+    PolyglotContext, parse_polyglot_file, execute_polyglot_file,
+    execute_polyglot_string, @polyglot, create_polyglot_shebang,
+    # BashRC
+    generate_bashrc_integration, install_bashrc_integration,
+    uninstall_bashrc_integration, generate_standalone_script
 
 end # module

@@ -1,27 +1,42 @@
 #!/usr/bin/env julia
 
 """
+eBash: Extended Bash Integration Functions
+Core piping, conditionals, and execution utilities for BashMacros
+"""
+
+"""
+    julia_to_bash_pipe(input_data::String, cmd::String) -> String
+
 Pipe a Julia string to a Bash command's STDIN and capture STDOUT as a string.
-This is similar to: echo \$input_data | bash -c \$cmd
+Similar to: echo \$input_data | bash -c \$cmd
+
+# Examples
+```julia
+result = julia_to_bash_pipe("hello world", "tr '[:lower:]' '[:upper:]'")
+println(result)  # "HELLO WORLD"
+```
 """
 function julia_to_bash_pipe(input_data::String, cmd::String)
-    # The `cmd` is executed by bash -c
     bash_cmd = `bash -c $cmd`
-
-    # Create a pipeline where stdin is an IOBuffer of the input data,
-    # and stderr is redirected to the main process's stderr.
     pl = pipeline(bash_cmd, stdin=IOBuffer(input_data), stderr=stderr)
     return read(pl, String)
 end
 
 """
-Macro for executing a Bash command and using its exit code
-    (0 for success, non-zero for failure) as the condition in a Julia `if` statement.
-        Usage: if @bashif("ls /tmp/existing_file"); ... end
-        """
+    @bashif(cmd_str)
+
+Use Bash command exit code as condition in Julia `if` statement.
+Returns `true` if exit code is 0 (success), `false` otherwise.
+
+# Examples
+```julia
+if @bashif("test -f /tmp/file.txt")
+    println("File exists!")
+end
+```
+"""
 macro bashif(cmd_str)
-    # This expands to: bash_full(cmd_str)[3] == 0
-    # bash_full returns (stdout, stderr, exitcode)
     return :(bash_full($(esc(cmd_str)))[3] == 0)
 end
 
@@ -113,134 +128,6 @@ function bash_prompt(cmd::String)
         stderr=Base.stderr))
 end
 
-# Simple wrappers for common Bash directory changes. change or replicate for other locations
-function home()
-    cmd = "cd ~"
-    BashMacros.bash(cmd)
-end
-
-function nano(args::String="")
-    if isempty(Sys.which(EDITOR))
-        error("Editor '$EDITOR' not found in PATH")
-    end
-    full_cmd = "$EDITOR $(Base.shell_escape(args))"
-    @bashprompt(full_cmd)
-end
-
-function python(args::String="")
-    full_cmd = "$PYTHON_CMD $args"
-    BashMacros.bash(full_cmd) # Non-interactive execution for running scripts
-end
-
-function grep(args::String)
-    full_cmd = "$GREP_CMD $args"
-    BashMacros.bash(full_cmd)
-end
-
-# Julia/Bash Execution Bridge (+J & +JX Equivalents)
-
-# Helper: Executes Julia code in a new Julia process
-function j_exec(code::String)
-    run(`julia --project=. -e $code`)
-end
-
-# Executes Julia code, replacing '?' placeholders with arguments
-function j_exec_multi(code::String, args...)
-    # Start with the input code string
-    final_code = code
-
-    # Iterate through the arguments and replace the '?' placeholder
-    for arg in args
-        # Replace the first instance of '?' with the string version of the argument
-        final_code = replace(final_code, "?" => string(arg); count=1)
-    end
-
-    # Execute the final code string using the helper function
-    j_exec(final_code)
-end
-
-function rgrep(pattern::String)
-    # Recursive grep for pattern in current directory
-    cmd = "grep -r --color=auto $(pattern) ."
-    BashMacros.bash(cmd)
-end
-
-function grep_logs(pattern::String; since::String="1 hour ago")
-    # Searches system logs with a time filter
-    cmd = "journalctl --since=\"$since\" | grep -i --color=auto \"$pattern\""
-    BashMacros.bash(cmd)
-end
-
-function ls(args::String="")
-    # Versatile ls command with long-listing and all-files flags
-    cmd = "ls -la $args"
-    BashMacros.bash(cmd)
-end
-
-# --- 9. File Operations ---
-
-"""touch(file::String): Creates an empty file or updates timestamp."""
-function touch(file::String)
-    BashMacros.bash("touch \"$file\"")
-end
-
-"""rm(path::String): Recursively and forcefully removes a file or directory (sudo)."""
-function rm(path::String)
-    BashMacros.bash("sudo rm -rf \"$path\"")
-end
-
-"""mkcd(dir::String): Creates and changes directory into it."""
-function mkcd(dir::String)
-    BashMacros.bash("mkdir -p \"$dir\" && cd \"$dir\"")
-end
-
-"""cpb(source::String): Copies a file and creates a timestamped backup."""
-function cpb(source::String)
-    cmd = """
-    cp \"$source\" \"$source.bak.\$(date +%Y%m%d_%H%M%S)\"
-    """
-    BashMacros.bash(cmd)
-end
-
-"""fe(): Find and edit a file using fzf."""
-function fe()
-    cmd = """
-    file=\$(fzf --preview 'head -100 {}') && [ -f "\$file" ] && \${EDITOR:-nano} "\$file"
-    """
-    @bashprompt(cmd)
-end
-
-"""fif(search_pattern::String): Find in files using grep, pipe to fzf, and open in editor."""
-function fif(search_pattern::String)
-    cmd = """
-    grep -r -l \"$search_pattern\" . 2>/dev/null |
-    fzf --preview "grep -n '$search_pattern' {}" |
-    xargs \${EDITOR:-nano}
-    """
-    @bashprompt(cmd)
-end
-
-"""source(f): Finds and opens the source code of a Julia function using the editor."""
-function source(f::Function)
-    try
-        m = @which f
-        file = String(m.file)
-        line = m.line
-
-        if !isempty(file) && isfile(file)
-            @info "Source found: $file:$line. Opening in editor..."
-            # Uses the Bash editor command to open the file at the specific line
-            cmd = """
-            \${EDITOR:-nano} +$line \"$file\"
-            """
-            @bashprompt(cmd)
-        else
-            println("Source code not available for $f.")
-        end
-    catch e
-        println("Could not find source for $f: $e")
-    end
-end
-
-export julia_to_bash_pipe, @bashif, bash_return, parse_and_process, execute_or_throw, @bashsafe, BashExecutionError
-export @bashprompt, bash_prompt
+# Export core eBash functions
+export julia_to_bash_pipe, @bashif, bash_return, parse_and_process,
+       execute_or_throw, @bashsafe, @bashprompt, bash_prompt
