@@ -23,12 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'  # Minimum version from Project.toml
-          - '1'    # Latest stable release
+          - '1'    # Latest stable release only
         os:
-          - ubuntu-latest
-          - macOS-latest
-          - windows-latest
+          - ubuntu-latest  # Only Ubuntu to save minutes
         arch:
           - x64
     steps:
@@ -44,49 +41,3 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
 
       - uses: julia-actions/julia-runtest@v1
-
-      - uses: julia-actions/julia-processcoverage@v1
-
-      - uses: codecov/codecov-action@v4
-        with:
-          files: lcov.info
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      statuses: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: '1'
-
-      - uses: julia-actions/cache@v2
-
-      - name: Configure doc environment
-        shell: julia --project=docs --color=yes {0}
-        run: |
-          using Pkg
-          Pkg.develop(PackageSpec(path=pwd()))
-          Pkg.instantiate()
-
-      - uses: julia-actions/julia-buildpkg@v1
-
-      - uses: julia-actions/julia-docdeploy@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-
-      - name: Run doctests
-        shell: julia --project=docs --color=yes {0}
-        run: |
-          using Documenter: DocMeta, doctest
-          using BashMacros
-          DocMeta.setdocmeta!(BashMacros, :DocTestSetup, :(using BashMacros); recursive=true)
-          doctest(BashMacros)

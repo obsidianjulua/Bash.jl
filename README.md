@@ -1,7 +1,6 @@
 # BashMacros.jl
 
 [![CI](https://github.com/obsidianjulua/BashMacros.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/obsidianjulua/BashMacros.jl/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/obsidianjulua/BashMacros.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/obsidianjulua/BashMacros.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **The Ultimate Bash-Julia Integration** | Execute shell commands with Julia's power | Process data across languages seamlessly
